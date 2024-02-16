@@ -10,6 +10,7 @@ main :: proc() {
 
     test_init_from_f64_and_back(&t)
     test_init_from_parts(&t)
+    test_to_string(&t)
     tc.report(&t)
 }
 
@@ -17,17 +18,17 @@ main :: proc() {
 test_init_from_f64_and_back :: proc(t: ^testing.T) {
     Testcase :: struct{ input: f64 }
     testcases :: []Testcase{
-        {0,},
-        {0.25,},
-        {0.5,},
-        {1,},
-        {2,},
-        {1000,},
-        {-0.25,},
-        {-0.5,},
-        {-1,},
-        {-2,},
-        {-1000,},
+        {0},
+        {0.25},
+        {0.5},
+        {1},
+        {2},
+        {1000},
+        {-0.25},
+        {-0.5},
+        {-1},
+        {-2},
+        {-1000},
         }
     for data in testcases {
         input := data.input
@@ -35,7 +36,9 @@ test_init_from_f64_and_back :: proc(t: ^testing.T) {
         fixed.init_from_f64(&fixed_num, 0)
         output := fixed.to_f64(fixed_num)
         // tc.expect(t, output == input, fmt.tprintf("%s(%f) -> got %b, expected %b", #procedure, input, transmute(u64)output, transmute(u64)input))
-        tc.expect(t, output == input, fmt.tprintf("%s(%f) -> got %f, expected %f", #procedure, input, output, input))
+        tc.expect(
+            t, output == input,
+            fmt.tprintf("%s(%f) -> got %f, expected %f", #procedure, input, output, input))
     }
 }
 
@@ -59,7 +62,33 @@ test_init_from_parts :: proc(t: ^testing.T) {
             fmt.tprintf(
                 "%s(%i,%i) -> got %v, expected %v",
                 #procedure, data.input_int, data.input_fraction,
-                output, data.expected)
-            )
+                output, data.expected))
+    }
+}
+
+@(test)
+test_to_string :: proc(t: ^testing.T) {
+    Testcase :: struct{
+        input_f64: f64, input_int: i32, input_fraction: i32, expected: string }
+    testcases :: []Testcase{
+        {0,             0,              0,                   "0"},
+        {-1,            -1,             0,                   "-1"},
+        {8,             8,              29,                  "8.29"},
+        {-8000.1866,    -8000,          1866,                "-8000.1866"},
+        {-2,            -2,             -6,                  "-2.6"},
+        {2,             2,              -6,                  "2.6"},
+        }
+    for data in testcases {
+        fixed_num_parts, fixed_num_f64 : fixed.Fixed16_16
+        fixed.init_from_parts(&fixed_num_parts, data.input_int, data.input_fraction)
+        fixed.init_from_f64(&fixed_num_f64, data.input_f64)
+        output_parts := fixed.to_string(fixed_num_parts)
+        output_f64 := fixed.to_string(fixed_num_f64)
+        tc.expect(t,
+            output_parts == data.expected && output_parts == data.expected,
+            fmt.tprintf(
+                "%s(%f  %i,%i) -> got %v and %v, expected %v",
+                #procedure, data.input_f64, data.input_int, data.input_fraction,
+                output_f64, output_parts, data.expected))
     }
 }
