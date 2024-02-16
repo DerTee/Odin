@@ -10,6 +10,7 @@ all: c_libc_test \
 	 download_test_assets \
 	 encoding_test \
 	 filepath_test \
+	 math_fixed_test \
 	 fmt_test \
 	 hash_test \
 	 i18n_test \
@@ -58,6 +59,9 @@ encoding_test:
 
 math_test:
 	$(ODIN) run math $(COMMON) $(COLLECTION) -out:test_core_math
+
+math_fixed_test:
+	$(ODIN) run math/fixed/test_math_fixed.odin -file -collection:tests=.. -out:test_math_fixed
 
 linalg_glsl_math_test:
 	$(ODIN) run math/linalg/glsl $(COMMON) $(COLLECTION) -out:test_linalg_glsl_math

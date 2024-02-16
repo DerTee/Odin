@@ -57,6 +57,11 @@ echo ---
 %PATH_TO_ODIN% run math/linalg/glsl %COMMON% %COLLECTION% -out:test_linalg_glsl.exe || exit /b
 
 echo ---
+echo Running core:math/fixed tests
+echo ---
+%PATH_TO_ODIN% run math/fixed %COMMON% %COLLECTION% -out:test_math_fixed.exe || exit /b
+
+echo ---
 echo Running core:path/filepath tests
 echo ---
 %PATH_TO_ODIN% run path/filepath %COMMON% %COLLECTION% -out:test_core_filepath.exe || exit /b
