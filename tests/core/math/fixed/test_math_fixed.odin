@@ -1,5 +1,6 @@
 package math_fixed_tests
 
+import "core:strings"
 import "core:fmt"
 import "core:math/fixed"
 import "core:testing"
@@ -69,14 +70,14 @@ test_init_from_parts :: proc(t: ^testing.T) {
 @(test)
 test_to_string :: proc(t: ^testing.T) {
     Testcase :: struct{
-        input_f64: f64, input_int: i32, input_fraction: i32, expected: string }
+        input_f64: f64, input_int: i32, input_fraction: i32, expected: string, expected_float: string }
     testcases :: []Testcase{
-        {0,             0,              0,                   "0"},
-        {-1,            -1,             0,                   "-1"},
-        {8,             8,              29,                  "8.29"},
-        {-8000.1866,    -8000,          1866,                "-8000.1866"},
-        {-2,            -2,             -6,                  "-2.6"},
-        {2,             2,              -6,                  "2.6"},
+        {0,             0,              0,                   "0", "0"},
+        {-1,            -1,             0,                   "-1", "-1"},
+        {8.29,          8,              29,                  "8.29", "8.29999"},
+        {-8000.1866,    -8000,          1866,                "-8000.1866", ""},
+        {-2.6,            -2,             -6,                "-2.6", "-2.6"},
+        {2.6,             2,              -6,                "2.6", "2.6"},
         }
     for data in testcases {
         fixed_num_parts, fixed_num_f64 : fixed.Fixed16_16
@@ -85,7 +86,7 @@ test_to_string :: proc(t: ^testing.T) {
         output_parts := fixed.to_string(fixed_num_parts)
         output_f64 := fixed.to_string(fixed_num_f64)
         tc.expect(t,
-            output_parts == data.expected && output_parts == data.expected,
+            strings.contains(output_f64, data.expected_float) && output_parts == data.expected,
             fmt.tprintf(
                 "%s(%f  %i,%i) -> got %v and %v, expected %v",
                 #procedure, data.input_f64, data.input_int, data.input_fraction,

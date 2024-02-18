@@ -38,10 +38,22 @@ init_from_f64 :: proc(x: ^$T/Fixed($Backing, $Fraction_Width), val: f64) {
 	}
 }
 
-init_from_parts :: proc(x: ^$T/Fixed($Backing, $Fraction_Width), integer, fraction: Backing) {
-	x.i  = fraction
+// you are supposed to provide the fractional part as an integer that is interpreted as a multiple of 1/Fraction_Width, I think
+init_from_parts :: proc(x: ^$T/Fixed($Backing, $Fraction_Width), integer, fraction: Backing) -> (ok: bool) {
+	// check for illegal combo of negative fraction and integer
+	// if int == 0, then it makes sense to allow a negative fraction, but otherwise it doesn't
+	// this logic is still shit anyway
+	if fraction < 0 && integer != 0 {
+		x.i = 0
+		return false
+	}
+	x.i  = abs(fraction) * (1<<Fraction_Width)
 	x.i &= 1<<Fraction_Width - 1
-	x.i |= (integer << Fraction_Width)
+	x.i |= abs(integer) << Fraction_Width
+	if integer < 0 {
+		x.i *= -1
+	}
+	return true
 }
 
 to_f64 :: proc(x: $T/Fixed($Backing, $Fraction_Width)) -> f64 {
@@ -102,6 +114,8 @@ round :: proc(x: $T/Fixed($Backing, $Fraction_Width)) -> Backing {
 	return (x.i + (1 << (Fraction_Width - 1))) >> Fraction_Width
 }
 
+
+
 @(require_results)
 append :: proc(dst: []byte, x: $T/Fixed($Backing, $Fraction_Width)) -> string {
 	Integer_Width :: 8*size_of(Backing) - Fraction_Width
@@ -146,6 +160,8 @@ append :: proc(dst: []byte, x: $T/Fixed($Backing, $Fraction_Width)) -> string {
 			}
 		}
 	}
+
+
 
 	n := copy(dst, buf[:i])
 	return string(dst[:i])
