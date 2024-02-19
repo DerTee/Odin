@@ -34,7 +34,7 @@ test_init_from_f64_and_back :: proc(t: ^testing.T) {
     for data in testcases {
         input := data.input
         fixed_num : fixed.Fixed16_16
-        fixed.init_from_f64(&fixed_num, 0)
+        fixed.init_from_f64(&fixed_num, input)
         output := fixed.to_f64(fixed_num)
         // tc.expect(t, output == input, fmt.tprintf("%s(%f) -> got %b, expected %b", #procedure, input, transmute(u64)output, transmute(u64)input))
         tc.expect(
