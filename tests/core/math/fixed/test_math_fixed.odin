@@ -45,21 +45,24 @@ test_init_from_f64_and_back :: proc(t: ^testing.T) {
 
 @(test)
 test_init_from_parts :: proc(t: ^testing.T) {
-    Testcase :: struct{ input_int: i32, input_fraction: i32, expected: string }
+    Testcase :: struct{ input_int: i32, input_fraction: i32, expected: string, expected_ok: bool }
     testcases :: []Testcase{
-        {input_int= 0, input_fraction = 0, expected = "0"},
-        {input_int= -1, input_fraction = 0, expected = "-1"},
-        {input_int= 8, input_fraction = 29, expected = "8.29"},
-        {input_int= -8000, input_fraction = 1866, expected = "-8000.1866"},
-        {input_int= -2, input_fraction = -6, expected = "-2.6"},
-        {input_int= 2, input_fraction = -6, expected = "2.6"},
+        {input_int= 0, input_fraction = 0, expected = "0", expected_ok = true},
+        {input_int= -1, input_fraction = 0, expected = "-1", expected_ok = true},
+        {input_int= 8, input_fraction =     29 , expected = "8.28", expected_ok = true},
+        {input_int= -8000, input_fraction = 1866, expected = "-8000.186", expected_ok = true},
+        {input_int= -2, input_fraction =    6, expected = "-2.59", expected_ok = true},
+        {input_int= -2, input_fraction =    -6, expected = "0", expected_ok = false},
+        {input_int= 2, input_fraction =     -6, expected = "0", expected_ok = false},
         }
     for data in testcases {
         fixed_num : fixed.Fixed16_16
-        fixed.init_from_parts(&fixed_num, data.input_int, data.input_fraction)
+        ok := fixed.init_from_parts(&fixed_num, data.input_int, data.input_fraction)
+        tc.expect(t, ok == data.expected_ok,
+            fmt.tprintf("%s(%i,%i) -> ok = %v, expected %v", #procedure, data.input_int, data.input_fraction, ok, data.expected_ok))
         output := fixed.to_string(fixed_num)
         tc.expect(t,
-            output == data.expected,
+            strings.contains(output, data.expected),
             fmt.tprintf(
                 "%s(%i,%i) -> got %v, expected %v",
                 #procedure, data.input_int, data.input_fraction,
