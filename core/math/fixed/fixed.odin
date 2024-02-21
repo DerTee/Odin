@@ -47,7 +47,13 @@ init_from_parts :: proc(x: ^$T/Fixed($Backing, $Fraction_Width), integer, fracti
 		x.i = 0
 		return false
 	}
-	x.i  = abs(fraction) * (1<<Fraction_Width)
+	num_decimals := 0
+	f := f64(abs(fraction))
+	for f > 1 {
+		f /= 10
+		num_decimals += 1
+	}
+	x.i = Backing(f * (1<<Fraction_Width))
 	x.i &= 1<<Fraction_Width - 1
 	x.i |= abs(integer) << Fraction_Width
 	if integer < 0 {
