@@ -48,6 +48,7 @@ Blend_BG             :: image.Options{.blend_background}
 Blend_BG_Keep        :: image.Options{.blend_background, .alpha_add_if_missing}
 Return_Metadata      :: image.Options{.return_metadata}
 No_Channel_Expansion :: image.Options{.do_not_expand_channels, .return_metadata}
+Vertical_Flip        :: image.Options{.vertical_flip}
 
 Dims :: struct {
 	width:     int,
