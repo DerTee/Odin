@@ -2396,3 +2396,326 @@ will_it_blend :: proc(t: ^testing.T) {
 		}
 	}
 }
+
+
+Vertical_Flip_Tests_BMP := []Test{
+	{
+		"pal8gs", {
+			{Vertical_Flip, nil, {127, 64, 3,  8}, 0x_e314_54fc},
+		},
+	},
+	{
+		"rgb24", {
+			{Vertical_Flip, nil, {127, 64, 3,  8}, 0x_22c8_1fdb},
+		},
+	},
+	{
+		"pal8topdown", {
+			{Vertical_Flip, nil, {127, 64, 3,  8}, 0x_72b0_2d03},
+		},
+	},
+}
+
+// Vertical_Flip_Tests_TGA := []Test{
+// 	{
+// 		"cbw8", {
+// 			{ Vertical_Flip, nil, {128, 128, 1, 8}, 0},
+// 		}
+// 	},
+// 	{
+// 		"rgb24_top_left", {
+// 			{ Vertical_Flip, nil, {64, 64, 3, 8}, 0x_9f96_f37f},
+// 		}
+// 	},
+// 	{
+// 		"rgb24_bottom_left_rle", {
+// 			{ Vertical_Flip, nil, {64, 64, 3, 8}, 0x_9f96_f37f},
+// 		}
+// 	},
+// 	{
+// 		"rgb32_bottom_left", {
+// 			{ Vertical_Flip, nil, {64, 64, 4, 8}, 0x_7732_dcd7},
+// 		}
+// 	},
+// }
+
+Vertical_Flip_Tests_PNG := []Test{
+	{"basn0g08", {{ Vertical_Flip, nil, {32, 32, 1,  8}, 0x_0}, } },
+	{"basn0g16", {{ Vertical_Flip, nil, {32, 32, 1, 16}, 0x_0}, } },
+	{"basn2c08", {{ Vertical_Flip, nil, {32, 32, 3,  8}, 0x_0}, } },
+	{"basn2c16", {{ Vertical_Flip, nil, {32, 32, 3, 16}, 0x_0}, } },
+	{"basn6a16", {{ Vertical_Flip, nil, {32, 32, 4, 16}, 0x_0}, } },
+}
+
+@test
+test_vertical_flip :: proc(t: ^testing.T) {
+	run_vertical_flip_suite(t)
+}
+
+import rl "vendor:raylib" // TODO REMOVE
+_ :: rl
+
+run_vertical_flip_suite :: proc(t: ^testing.T) {
+	Test_Item :: struct {
+		test: Test,
+		image: ^image.Image,
+	}
+	images_roundtrip := make([dynamic]Test_Item, 0, 12)
+	defer delete(images_roundtrip)
+
+	destroy_images :: proc(imgs: ^[dynamic]Test_Item) {
+		for &item in imgs {
+			image.destroy(item.image)
+		}
+	}
+	defer destroy_images(&images_roundtrip)
+
+	when !ODIN_TEST {
+		HEIGHT :: 300
+		rl.InitWindow(300, HEIGHT, "Test core:image") // TODO REMOVE
+		rl.SetTargetFPS(30)
+		defer rl.CloseWindow() // TODO REMOVE
+	}
+	ray_draw :: proc(img: ^image.Image, name, type: string) {
+		when !ODIN_TEST {
+			title_temp := strings.concatenate({name, type})
+			defer delete(title_temp)
+			title : cstring = strings.unsafe_string_to_cstring(title_temp)
+			pixel_format : rl.PixelFormat
+			// pixel_format = rl.PixelFormat.UNCOMPRESSED_R8G8B8A8
+			if img.depth == 8 {
+				switch img.channels {
+				case 1: pixel_format = .UNCOMPRESSED_GRAYSCALE
+				case 2: pixel_format = .UNCOMPRESSED_GRAY_ALPHA
+				case 3: pixel_format = .UNCOMPRESSED_R8G8B8
+				case 4: pixel_format = .UNCOMPRESSED_R8G8B8A8
+				case: panic("Unsupported number of channels for 8 bit per channel") // , img.channels, img)
+				}
+			} else if img.depth == 16 {
+				switch img.channels {
+				case 3: pixel_format = .UNCOMPRESSED_R16G16B16
+				case 4: pixel_format = .UNCOMPRESSED_R16G16B16A16
+				case: panic("Unsupported number of channels for 16 bit per channel") // , img.channels, img)
+				}
+			} else if img.depth == 5 {
+				switch img.channels {
+				case 3: pixel_format = .UNCOMPRESSED_R5G6B5
+				case 4: pixel_format = .UNCOMPRESSED_R5G5B5A1
+				case: panic("Unsupported number of channels for 5/6 bit per channel") // , img.channels, img)
+				}
+			} else {
+				panic("Unsupported bit depth") // , img.depth, img)
+			}
+			pixel_format_str : cstring = rl.TextFormat("%v", pixel_format)
+
+			ray_image := rl.Image{
+				data=raw_data(bytes.buffer_to_bytes(&img.pixels)),
+				width=i32(img.width),
+				height=i32(img.height),
+				mipmaps=1,
+				format=pixel_format,
+			}
+			tex := rl.LoadTextureFromImage(ray_image)
+
+			output_file := strings.concatenate({name, "_odin_image.bmp"})
+			// save_file_odin := strings.concatenate({name, "_odin_image.bmp"})
+			// save_file_stbi := strings.concatenate({name, "_stbi.bmp"})
+
+			err := bmp.save_to_file(output_file, img)
+			if err != nil {
+				rl.TraceLog(.ERROR, "file %s couldnt be saved", strings.clone_to_cstring(output_file))
+				// rl.log("Error while trying to save file '%v'", output_file)
+			} else {
+				// rl.log("Saved image as '%v'", output_file)
+			}
+
+			run := true
+			for run {
+				if rl.IsKeyReleased(.SPACE) || rl.IsKeyReleased(.ESCAPE) {
+					run = false
+				}
+
+				rl.BeginDrawing()
+				defer rl.EndDrawing()
+				rl.ClearBackground({100, 100, 100, 255})
+				rl.DrawTexture(tex, 40, 40, {0, 0, 0, 255})
+				FONT_SIZE :: 16
+				rl.DrawText(title, 10, 5, FONT_SIZE, {0, 0, 0, 255})
+				rl.DrawText(pixel_format_str, 10, HEIGHT-50, FONT_SIZE, {0, 0, 0, 255})
+			}
+		}
+	}
+
+	for file in Vertical_Flip_Tests_BMP {
+		test_file := strings.concatenate({TEST_SUITE_PATH_BMP, "/", file.file, ".bmp"}, context.allocator)
+		defer delete(test_file)
+
+		assert(len(file.tests) == 1)
+		test := file.tests[0]
+		img, err := bmp.load(test_file, test.options)
+
+		passed := (test.expected_error == nil && err == nil) || (test.expected_error == err)
+		testing.expectf(t, passed, "%q failed to load with error %v.", file.file, err)
+
+		if err == nil { // No point in running the other tests if it didn't load.
+			ray_draw(img, file.file, ".bmp")
+			append_elem(&images_roundtrip, Test_Item{file, img})
+		} else {
+			bmp.destroy(img)
+		}
+	}
+
+	// for file in Vertical_Flip_Tests_TGA {
+	// 	test_file := strings.concatenate({ODIN_ROOT + "tests/core/assets/TGA/", file.file, ".tga"}, context.allocator)
+	// 	defer delete(test_file)
+
+	// 	assert(len(file.tests) == 1)
+	// 	test := file.tests[0]
+	// 	img, err := tga.load(test_file, test.options)
+
+	// 	passed := (test.expected_error == nil && err == nil) || (test.expected_error == err)
+	// 	testing.expectf(t, passed, "%q failed to load with error %v.", file.file, err)
+
+	// 	if err == nil { // No point in running the other tests if it didn't load.
+	// 		ray_draw(img, file.file, ".tga")
+	// 		pixels := bytes.buffer_to_bytes(&img.pixels)
+
+	// 		dims   := Dims{img.width, img.height, img.channels, img.depth}
+	// 		testing.expectf(t, test.dims == dims, "%v has %v, expected: %v.", file.file, dims, test.dims)
+
+	// 		img_hash := hash.crc32(pixels)
+	// 		testing.expectf(t, test.hash == img_hash, "%v test #1's hash is %08x, expected %08x with %v.", file.file, img_hash, test.hash, test.options)
+
+	// 		append_elem(&images_roundtrip, Test_Item{file, img})
+	// 	} else {
+	// 		tga.destroy(img)
+	// 	}
+	// }
+
+	for file in Vertical_Flip_Tests_PNG {
+		test_file := strings.concatenate({TEST_SUITE_PATH_PNG, "/", file.file, ".png"}, context.allocator)
+		defer delete(test_file)
+
+		assert(len(file.tests) == 1)
+		test := file.tests[0]
+		img, err := png.load(test_file, test.options)
+
+		passed := (test.expected_error == nil && err == nil) || (test.expected_error == err)
+		testing.expectf(t, passed, "%q failed to load with error %v.", file.file, err)
+
+		if err == nil { // No point in running the other tests if it didn't load.
+			ray_draw(img, file.file, ".png")
+			pixels := bytes.buffer_to_bytes(&img.pixels)
+
+			dims   := Dims{img.width, img.height, img.channels, img.depth}
+			testing.expectf(t, test.dims == dims, "%v has %v, expected: %v.", file.file, dims, test.dims)
+
+			img_hash := hash.crc32(pixels)
+			testing.expectf(t, test.hash == img_hash, "%v test #1's hash is %08x, expected %08x with %v.", file.file, img_hash, test.hash, test.options)
+
+			append_elem(&images_roundtrip, Test_Item{file, img})
+		} else {
+			png.destroy(img)
+		}
+	}
+
+	// do tests for all other file formats, not as thorough, but should ensure base functionality is ok
+	for test_item in images_roundtrip {
+		img := test_item.image
+		file := test_item.test
+		pixels := bytes.buffer_to_bytes(&img.pixels)
+
+		assert(len(file.tests) == 1)
+		test := file.tests[0]
+		passed := false
+
+		dims   := Dims{img.width, img.height, img.channels, img.depth}
+		testing.expectf(t, test.dims == dims, "%v has %v, expected: %v.", file.file, dims, test.dims)
+		passed &= test.dims == dims
+
+		img_hash := hash.crc32(pixels)
+		testing.expectf(t, test.hash == img_hash, "%v test #1's hash is %08x, expected %08x with %v.", file.file, img_hash, test.hash, test.options)
+		passed &= test.hash == img_hash
+
+		if passed {
+			// flip again before saving so we can use the flip option with the same old hash for the other file formats
+			image.vertical_flip(img)
+
+			// TODO TGA especially flipped top-left and bottom left encodings, but refrain from overcomplicating things my friend
+
+			// Roundtrip through QOI to test the QOI encoder and decoder.
+			if img.depth == 8 && (img.channels == 3 || img.channels == 4) {
+				qoi_buffer: bytes.Buffer
+				defer bytes.buffer_destroy(&qoi_buffer)
+				qoi_save_err := qoi.save(&qoi_buffer, img)
+
+				testing.expectf(t, qoi_save_err == nil, "%v test QOI save failed with %v", file.file, qoi_save_err)
+
+				if qoi_save_err == nil {
+					qoi_img, qoi_load_err := qoi.load(qoi_buffer.buf[:], test.options)
+					defer qoi.destroy(qoi_img)
+
+					testing.expectf(t, qoi_load_err == nil, "%v test QOI load failed with %v", file.file, qoi_load_err)
+
+					qoi_hash := hash.crc32(qoi_img.pixels.buf[:])
+					testing.expectf(t, qoi_hash == img_hash, "%v test QOI load hash is %08x, expected it match PNG's %08x with %v", file.file, qoi_hash, img_hash, test.options)
+				}
+			}
+
+			{
+				// Roundtrip through PBM to test the PBM encoders and decoders - prefer binary
+				pbm_buf, pbm_save_err := pbm.save_to_buffer(img)
+				defer delete(pbm_buf)
+
+				testing.expectf(t, pbm_save_err == nil, "%v test PBM save failed with %v", file.file, pbm_save_err)
+
+				if pbm_save_err == nil {
+					// Try to load it again.
+					pbm_img, pbm_load_err := pbm.load(pbm_buf, test.options)
+					defer pbm.destroy(pbm_img)
+
+					testing.expectf(t, pbm_load_err == nil, "%v test PBM load failed with %v", file.file, pbm_load_err)
+
+					if pbm_load_err == nil {
+						pbm_hash := hash.crc32(pbm_img.pixels.buf[:])
+						testing.expectf(t, pbm_hash == img_hash, "%v test PBM load hash is %08x, expected it match PNG's %08x with %v", file.file, pbm_hash, img_hash, test.options)
+					}
+				}
+			}
+
+			{
+				// Roundtrip through PBM to test the PBM encoders and decoders - prefer ASCII
+				pbm_info, _ := pbm.autoselect_pbm_format_from_image(img, false)
+
+				// We already tested the binary formats above.
+				if pbm_info.header.format in pbm.ASCII {
+					pbm_buf, pbm_save_err := pbm.save_to_buffer(img, pbm_info)
+					defer delete(pbm_buf)
+
+					testing.expectf(t, pbm_save_err == nil, "%v test PBM save failed with %v", file.file, pbm_save_err)
+
+					if pbm_save_err == nil {
+						// Try to load it again.
+						pbm_img, pbm_load_err := pbm.load(pbm_buf, test.options)
+						defer pbm.destroy(pbm_img)
+
+						testing.expectf(t, pbm_load_err == nil, "%v test PBM load failed with %v", file.file, pbm_load_err)
+
+						if pbm_load_err == nil {
+							pbm_hash := hash.crc32(pbm_img.pixels.buf[:])
+							testing.expectf(t, pbm_hash == img_hash, "%v test PBM load hash is %08x, expected it match PNG's %08x with %v", file.file, pbm_hash, img_hash, test.options)
+						}
+					}
+				}
+			}
+		}
+	}
+	return
+}
+
+when !ODIN_TEST {
+	main :: proc() {
+		t := testing.T{}
+		run_vertical_flip_suite(&t)
+	}
+}
