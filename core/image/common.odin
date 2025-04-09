@@ -1448,7 +1448,7 @@ expand_grayscale :: proc(img: ^Image, allocator := context.allocator) -> (ok: bo
 // Does an inplace vertical flip of the pixels of the given image.
 // Vertical flip is only supported for images with 8 or 16 bit channels!
 vertical_flip :: proc(img: ^Image) {
-	assert(img.depth > 0 && (img.depth % 8  == 0), "Image bit depth must be multiple of 8, currently either 8 or 16 bit!")
+	assert(img.depth > 0 && (img.depth % 8  == 0), "Image bit depth must be a multiple of 8, currently either 8 or 16 bit!")
 	pixels := img.pixels.buf[:]
 	bytes_per_pixel := img.depth/8 * img.channels
 	stride := img.width * bytes_per_pixel
